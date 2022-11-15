@@ -31,16 +31,20 @@ public class Explorer extends MazeElement{
 	public String getSteps(){
 		return(""+steps);
 	}
+	public void setSteps(int i) {
+		steps = i;
+	}
+	public int getDir() {
+		return dir;
+	}
 	@Override
 	public void move(int key, char[][] maze){
 		if(key == 39){//rightarrow
-			steps++;
 			dir++;
 			if(dir == 4)
 				dir = 0;
 
 		}if(key == 37){//leftarrow
-			steps++;
 			dir--;
 			if(dir == -1)
 				dir = 3;
@@ -49,22 +53,35 @@ public class Explorer extends MazeElement{
 			int r = getLoc().getRow();
 			int c = getLoc().getCol();
 			if(dir == 1) {
-				if(c+1 < maze[r].length && maze[r][c+1] == ' ')
+				if(c+1 < maze[r].length && maze[r][c+1] == ' ') {
+					steps++;
 					getLoc().set(r, c+1);
+					
+				}
+					
 			}
 			if(dir == 2) {
-				if(r+1 < maze.length && maze[r+1][c] == ' ')
+				if(r+1 < maze.length && maze[r+1][c] == ' ') {
 					getLoc().set(r+1, c);
+					steps++;
+				}
 			}
 			if(dir == 3) {
-				if(c-1 > 0 && maze[r][c-1] == ' ')
+				if(c-1 > 0 && maze[r][c-1] == ' ') {
 					getLoc().set(r, c-1);
+					steps++;
+				}
 			}
 			if(dir == 0) {
-				if(r-1 > 0 && maze[r-1][c] == ' ')
+				if(r-1 > 0 && maze[r-1][c] == ' ') {
+					steps++;
 					getLoc().set(r-1, c);
+				}
+					
 			}
 		}
+		
 
 	}
+
 }

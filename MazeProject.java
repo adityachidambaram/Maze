@@ -11,11 +11,18 @@ public class MazeProject extends JPanel implements KeyListener, ActionListener
 	//keylistener assists with processing the keys the user is clicking
 
 	private JFrame frame;
-	private int size = 60, width = 1500, height = 1000;
+	private int size = 35, width = 1500, height = 1000;
 	private char[][] maze; //main array
 	private Timer t;
 	private MazeElement finish; //declared finish line
+	private Key keys; //creating keys
+	private Barrier block; //creating keys
+	private int bR;
+	private int bC;
 	private Explorer explorer; //declared the starting line/moving character
+	private boolean levelComplete = false;
+	//private boolean continued = false;
+
 
 	public MazeProject(){
 		//Maze variables
@@ -58,6 +65,14 @@ public class MazeProject extends JPanel implements KeyListener, ActionListener
 				if(here.equals(explorer.getLoc())){
 					g2.drawImage(explorer.getImg(), c*size+size,r*size+size,size,size,null, this);
 				}//for explorer object
+				if(here.equals(keys.getLoc()) && keys.isActive()){
+					g2.drawImage(keys.getImg(), c*size+size,r*size+size,size,size,null, this);
+				}//for keys object
+				if(here.equals(block.getLoc()) && block.isActive()){
+					g2.drawImage(block.getImg(), c*size+size,r*size+size,size,size,null, this);
+				}//for keys object
+
+
 
 			}
 		}
@@ -67,7 +82,19 @@ public class MazeProject extends JPanel implements KeyListener, ActionListener
 		int vert = maze.length*size+ 2*size;
 		g2.setFont(new Font("Arial",Font.BOLD,20));
 		g2.setColor(Color.PINK);
-		g2.drawString("PRINT STUFF HERE  ",hor,vert);
+		g2.drawString("Total Steps: " + explorer.getSteps() ,hor,vert);
+		g2.drawString("Wall's Health: " + block.getHealth() ,hor,vert+40);
+		if(levelComplete) {
+			g2.setColor(Color.RED);
+			g2.drawString("Level is Completed - press \"enter\" to continue" ,hor,vert+80);
+		}
+		else {
+			g2.setColor(Color.BLACK);
+			g2.drawString("Level is Completed - press \"enter\" to continue" ,hor,vert+80);
+		}
+
+		
+
 	}
 
 
@@ -76,6 +103,41 @@ public class MazeProject extends JPanel implements KeyListener, ActionListener
 		// Call explorer method
 		explorer.move(e.getKeyCode(),maze); //pass the maze so you can see if there is a wall or a space
 		repaint();
+
+		if(explorer.intersects(finish)) {
+			levelComplete = true;
+		}
+		if(levelComplete && e.getKeyCode() == 10) {
+			setBoard("maze1.txt");
+			explorer.setSteps(0);
+			levelComplete = false;
+		}
+
+
+		if(explorer.intersects(keys)) {
+			keys.setActive(false);
+			block.setActive(false);
+			maze[bR][bC] = ' ';
+		}
+
+
+		if(e.getKeyCode() == 38) {
+			int r = explorer.getLoc().getRow();
+			int c = explorer.getLoc().getCol();
+
+			if(explorer.getDir() == 1) {
+				if(c+1 < maze[r].length && maze[r][c+1] == 'W') {
+					block.attacked();
+				}
+					
+			}
+		}
+		if(block.getHealth() == 0) {
+			block.setActive(false);
+			maze[bR][bC] = ' ';
+		}
+		
+		
 	}
 
 	/*** empty methods needed for interfaces **/
@@ -86,63 +148,59 @@ public class MazeProject extends JPanel implements KeyListener, ActionListener
 	public ArrayList<String> list = new ArrayList<String>();
 
 
-	public void setBoard(String fileName){
+	public void setBoard(String fileName) {
+        try {
+            BufferedReader input = new BufferedReader(new FileReader(fileName));
+            ArrayList<ArrayList<Character>> grid = new ArrayList<ArrayList<Character>>();
+            String text;
 
-		File name = new File("maze0.txt");
+            while((text = input.readLine()) != null) {
+                char[] textArr = text.toCharArray();
+                ArrayList<Character> line = new ArrayList<Character>();
 
-		try{
+                for(int i = 0; i < textArr.length; i++)
+                    line.add(textArr[i]);
 
-			BufferedReader input = new BufferedReader(new FileReader(name));
-			String text,output="";
+                grid.add(line);
+            }
 
-			while((text=input.readLine())!= null){
+            char[][] temp = new char[grid.size()][grid.get(0).size()];
+            for(int i = 0; i < grid.size(); i++) {
+                for(int j = 0; j < grid.get(0).size(); j++) {
+                    temp[i][j] =  grid.get(i).get(j);
 
-				String[] temp = text.split("\n");
-				for(int i=0; i<temp.length; i++){
-					list.add(temp[i]);
-				}
+                    if (temp[i][j] == 'F') {
+                        finish = new MazeElement(new Location(i,j),size,"finish.png");
+						temp[i][j] = ' ';
+                    }
 
-				char[][] temp2D = new char[list.size()][list.get(0).length()];
-				for(int r=0; r<list.size(); r++){
+                    if (temp[i][j] == 'E') {
+                        explorer = new Explorer(new Location(i,j), size);
+                        temp[i][j] = ' ';
+                    }
 
-					for(int c=0; c<list.get(0).length(); c++){
-
-						temp2D[r][c] = list.get(r).charAt(c);
+					if (temp[i][j] == 'K') {
+						keys = new Key(new Location(i,j),size);
+						temp[i][j] = ' ';
 					}
-					System.out.println();
-				}
 
-				maze = temp2D;
-
-				for(int r=0; r<maze.length; r++){
-					for(int c=0; c<maze[0].length; c++){
-
-						char symbol = maze[r][c];
-						if(symbol != ' ' && symbol != '#'){
-
-							if(symbol == 'E')
-								explorer = new Explorer(new Location(r, c), size); //explorer
-
-							if(symbol == 'F')
-								finish = new MazeElement(new Location(r,c),size,"finish.png"); //finish line
-
-							maze[r][c] = ' ';
-						}
-						else{
-
-							maze[r][c] = symbol;
-						}
+					if (temp[i][j] == 'W') {
+						block = new Barrier(new Location(i,j),size);
+						bR = i;
+						bC = j;
+						temp[i][j] = 'W';
 					}
-				}
-			}
 
-		}
-		catch (IOException io){
+                }
+            }
 
-			System.err.println("Error reading file => "+io);
-			io.printStackTrace(System.out);
-		}
-	}
+            maze = temp;
+
+        } catch (IOException io) {
+            System.err.println("Error reading file => " + io);
+        }
+    }
+
 
 	public static void main(String[] args){
 		MazeProject app=new MazeProject();
